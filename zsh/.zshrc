@@ -111,7 +111,6 @@ source $ZSH/oh-my-zsh.sh
 # alias vi="nvim"
 # alias yeet='paru -Rcs'
 unset zle_bracketed_paste
-eval "$(zoxide init --cmd cd zsh)"
 
 #  >>> juliaup initialize >>>
 
