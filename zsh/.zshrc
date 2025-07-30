@@ -108,11 +108,10 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-# alias vi="nvim"
-# alias yeet='paru -Rcs'
+alias vi="nvim"
 unset zle_bracketed_paste
 
-#  >>> juliaup initialize >>>
+# >>> juliaup initialize >>>
 
 # !! Contents within this block are managed by juliaup !!
 
