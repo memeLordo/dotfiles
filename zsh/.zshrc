@@ -110,6 +110,7 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias vi="nvim"
 unset zle_bracketed_paste
+eval "$(zoxide init --cmd cd zsh)"
 
 # >>> juliaup initialize >>>
 
