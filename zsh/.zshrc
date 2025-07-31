@@ -116,7 +116,7 @@ eval "$(zoxide init --cmd cd zsh)"
 
 # !! Contents within this block are managed by juliaup !!
 
-path=('/home/simaforest/.juliaup/bin' $path)
+path=('/home/$USER/.juliaup/bin' $path)
 export PATH
 
 # <<< juliaup initialize <<<
