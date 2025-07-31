@@ -109,9 +109,56 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias vi="nvim"
-unset zle_bracketed_paste
+alias yeet='paru -Rcs'
 eval "$(zoxide init --cmd cd zsh)"
 
+# pacman() {
+#     if [[ "$1" == "autoremove" ]]; then
+#         command pacman -Rns $(command pacman -Qdtq) 2>/dev/null || echo "No packages to remove"
+#     else
+#         command pacman "$@"
+#     fi
+# }
+_pkg_wrapper() {
+    local cmd="$1"      # real command (pacman, paru, etc.)
+
+    if [[ $# -lt 2 ]]; then
+        # No arguments after the command; exit or do nothing
+        command "$cmd"
+        return 1
+    fi
+    shift               # drop it from the argument list
+    
+    local flag="$1"     # autoremove | remove | clean | fullclean | other
+    shift || true       # shift if there was an action word
+
+    case "$flag" in
+        remove)
+            if [[ $# -eq 0 ]]; then
+                echo "Usage: $cmd remove <pkg1> [pkg2 …]"
+            else
+                # remove listed packages
+                command "$cmd" -Rns "$@"      
+            fi
+            ;;
+        autoremove)
+            # Remove orphaned packages
+            command "$cmd" -Rns "$("$cmd" -Qdtq)" 2>/dev/null || echo "No packages to remove"
+            ;;
+        autoclean)                
+            # cache only
+            command "$cmd" -Sc --noconfirm
+            ;;
+        *)
+            # Forward all other calls under sudo
+            command "$cmd" "$@"
+            ;;
+    esac
+}
+pacman() { _pkg_wrapper pacman "$@"; }
+paru()   { _pkg_wrapper paru   "$@"; }
+
+unset zle_bracketed_paste
 # >>> juliaup initialize >>>
 
 # !! Contents within this block are managed by juliaup !!
