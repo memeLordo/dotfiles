@@ -1,0 +1,73 @@
+#!/bin/bash
+
+catkin_make_bear() {
+    echo "Running catkin_make..."
+    "$(which catkin_make)" "$@"
+    if [ $? -ne 0 ]; then
+        echo "catkin_make failed"
+        return 1
+    fi
+    # ... остальной код без изменений ...
+    # например:
+    if [ ! -f "build/buildbear.json" ]; then
+        echo "Creating buildbear.json..."
+        cat > build/buildbear.json << 'EOF'
+{
+  "compilation": {
+    "compilers_to_exclude": ["/usr/lib/llvm-19/bin/clang", "/usr/bin/clang-19"]
+  }
+}
+EOF
+        echo "build/buildbear.json created"
+    else
+        echo "build/buildbear.json found"
+    fi
+
+    echo "Generating compile_commands.json with bear..."
+    cd build && bear --config buildbear.json -- make clean all && cd ..
+    if [ $? -ne 0 ]; then
+        echo "bear failed"
+        return 1
+    fi
+
+    # echo "Looking for workspaces and copying compile_commands.json..."
+    # if [ ! -f "build/compile_commands.json" ]; then
+    #     echo "build/compile_commands.json not found"
+    #     return 1
+    # fi
+    #
+    # # Copy compile_commands.json only into work-spaces that live directly under ./src/<workspace>
+    # for workspace_src_dir in ./src/*; do
+    #     # Skip if it is not a directory (globbing can match files, broken links, …)
+    #     if [ ! -d "$workspace_src_dir" ]; then
+    #         continue
+    #     fi
+    #
+    #     compile_commands_path="$workspace_src_dir/src/compile_commands.json"
+    #     should_copy=false
+    #
+    #     # No file → need to copy
+    #     if [ ! -f "$compile_commands_path" ]; then
+    #         should_copy=true
+    #         # echo "$compile_commands_path does not exist"
+    #     else
+    #         # File exists: copy only if it is empty or contains just []
+    #         content="$(tr -d '[:space:]' < "$compile_commands_path")"
+    #         if [ -z "$content" ] || [ "$content" = "[]" ]; then
+    #             should_copy=true
+    #             # echo "$compile_commands_path is empty"
+    #         fi
+    #     fi
+    #
+    #     if [ "$should_copy" = true ]; then
+    #         cp -u build/compile_commands.json "$compile_commands_path"
+    #         echo "compile_commands.json copied to $compile_commands_path"
+    #     else
+    #         echo "$compile_commands_path is up to date"
+    #     fi
+    # done
+
+    echo "Done!"
+}
+
+catkin_make_bear "$@"

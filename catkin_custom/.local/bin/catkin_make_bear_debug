@@ -1,0 +1,98 @@
+#!/bin/bash
+#
+# Simple-debug version of catkin_make + bear wrapper
+# Shows which step runs and the exit code returned
+# so you can see exactly where a seg-fault (or any crash)
+# is coming from.
+
+catkin_make_bear() {
+    echo "=== [start] catkin_make_bear ==="
+    fullpath=$(which catkin_make)
+    echo "catkin_make PATH = $fullpath"
+    # --------------------------------------------------
+    # 1. Standard catkin_make
+    # --------------------------------------------------
+    echo "[1] Running catkin_make …"
+    "$fullpath" "$@"
+    if [ $? -ne 0 ]; then
+        echo "[1] catkin_make FAILED — aborting"
+        return 1
+    fi
+    echo "[1] catkin_make OK"
+
+    # --------------------------------------------------
+    # 2. Ensure build/buildbear.json is present
+    # --------------------------------------------------
+    if [ ! -f build/buildbear.json ]; then
+        echo "[2] build/buildbear.json is missing — creating"
+        mkdir -p build
+        cat > build/buildbear.json <<'EOF'
+{
+  "compilation": {
+    "compilers_to_exclude": ["/usr/lib/llvm-19/bin/clang", "/usr/bin/clang-19"]
+  }
+}
+EOF
+        echo "[2] build/buildbear.json created"
+    else
+        echo "[2] build/buildbear.json already exists"
+    fi
+
+    # --------------------------------------------------
+    # 3. Run bear to capture compile_commands.json
+    # --------------------------------------------------
+    echo "[3] Running bear …"
+    cd build
+    bear --config buildbear.json -- make clean all
+    bear_exit=$?
+    cd -
+    echo "[3] bear returned $bear_exit"
+    if [ $bear_exit -ne 0 ]; then
+        echo "[3] bear FAILED — aborting"
+        return 1
+    fi
+
+    # --------------------------------------------------
+    # 4. Verify compile_commands.json exists in build/
+    # --------------------------------------------------
+    if [ ! -f build/compile_commands.json ]; then
+        echo "[4] build/compile_commands.json not found — aborting"
+        return 1
+    fi
+    echo "[4] build/compile_commands.json OK"
+
+    # --------------------------------------------------
+    # 5. Copy compile_commands.json into each workspace
+    #    located directly under ./src/<workspace>
+    # --------------------------------------------------
+    echo "[5] Copying compile_commands.json into workspaces …"
+    for workspace_src_dir in ./src/*; do
+        [ -d "$workspace_src_dir" ] || continue    # skip non-dirs
+
+        target="$workspace_src_dir/compile_commands.json"
+        copy_needed=false
+
+        if [ ! -f "$target" ]; then
+            echo "  • $target does not exist"
+            copy_needed=true
+        else
+            content="$(tr -d '[:space:]' < "$target")"
+            if [ -z "$content" ] || [ "$content" = "[]" ]; then
+                echo "  • $target is empty (or just [])"
+                copy_needed=true
+            fi
+        fi
+
+        if [ "$copy_needed" = true ]; then
+            cp -u build/compile_commands.json "$target"
+            echo "  → copied to $target"
+        else
+            echo "  • $target already populated — skip"
+        fi
+    done
+
+    echo "=== [done] catkin_make_bear ==="
+}
+
+# run the wrapper
+catkin_make_bear "$@"
